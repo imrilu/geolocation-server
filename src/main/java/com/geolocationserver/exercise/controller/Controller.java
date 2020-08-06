@@ -42,6 +42,15 @@ public class Controller {
         return new ResponseEntity<>("Error connecting to DB", HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
+    @PostMapping("/distance")
+    public ResponseEntity addDistance(@RequestBody String body) throws Exception {
+        JSONParser parser = new JSONParser();
+        JSONObject json = (JSONObject) parser.parse(body);
+        Distance distance = new Distance(((Number) json.get("distance")).doubleValue(), (String) json.get("source"), (String) json.get("destination"), 0);
+        repository.save(distance);
+        return new ResponseEntity<>(json, HttpStatus.CREATED);
+    }
+
     @GetMapping("/popularsearch")
     public JSONObject maxHitsDistance() {
         JSONObject response = new JSONObject();
