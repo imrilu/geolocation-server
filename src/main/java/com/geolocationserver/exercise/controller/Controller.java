@@ -5,6 +5,9 @@ import com.geolocationserver.exercise.model.Distance;
 import org.json.simple.*;
 import org.json.simple.parser.JSONParser;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
@@ -18,19 +21,39 @@ public class Controller {
     @Autowired
     DistanceRepository repository;
 
+    @Value("${server.port}")
+    private String port;
+
+
     @GetMapping("/hello")
     public void hello() {
         // empty function to test application
     }
 
+    @GetMapping("/health")
+    public ResponseEntity health() throws Exception {
+        RestTemplate restTemplate = new RestTemplate();
+        JSONParser parser = new JSONParser();
+        String response = restTemplate.getForObject("http://localhost:" + port + "/actuator/health", String.class);
+        JSONObject json = (JSONObject) parser.parse(response);
+        if (json.get("status").equals("UP")) {
+            return new ResponseEntity<>(HttpStatus.OK);
+        }
+        return new ResponseEntity<>("Error connecting to DB", HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
     @GetMapping("/distance")
     public JSONObject distance(@RequestParam String source,
                                @RequestParam String destination) {
+        JSONObject response = new JSONObject();
+        if (source.toLowerCase().equals(destination.toLowerCase())) {
+            response.put("distance", 0);
+            return response;
+        }
         List<Distance> distances = repository.findBySourceAndDestination(source.toLowerCase(), destination.toLowerCase());
         if (distances.isEmpty()) {
             return saveExternalDistance(source.toLowerCase(), destination.toLowerCase());
         }
-        JSONObject response = new JSONObject();
         response.put("distance", distances.get(0).getDistance());
         return response;
     }
