@@ -42,6 +42,23 @@ public class Controller {
         return new ResponseEntity<>("Error connecting to DB", HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
+    @GetMapping("/popularsearch")
+    public JSONObject maxHitsDistance() {
+        JSONObject response = new JSONObject();
+        long maxHits = Distance.getMaxHitsId();
+        if (maxHits == -1)
+            return response;
+        if (maxHits == 0)
+            // hibernate bug
+            maxHits = 1;
+        Distance distance = repository.getDistanceById(maxHits);
+        System.out.println(distance.toString());
+        response.put("source", distance.getSource());
+        response.put("destination", distance.getDestination());
+        response.put("hits", distance.getHits());
+        return response;
+    }
+
     @GetMapping("/distance")
     public JSONObject distance(@RequestParam String source,
                                @RequestParam String destination) {
@@ -54,6 +71,8 @@ public class Controller {
         if (distances.isEmpty()) {
             return saveExternalDistance(source.toLowerCase(), destination.toLowerCase());
         }
+        distances.get(0).incrementHits();
+        repository.save(distances.get(0));
         response.put("distance", distances.get(0).getDistance());
         return response;
     }
@@ -62,7 +81,7 @@ public class Controller {
         JSONObject response = new JSONObject();
         try {
             double externalDistance = getExternalDistance(source, destination);
-            Distance distance = new Distance(externalDistance, source, destination);
+            Distance distance = new Distance(externalDistance, source, destination, 1);
             repository.save(distance);
             response.put("distance", externalDistance);
             return response;

@@ -6,5 +6,5 @@ import java.util.List;
 
 public interface DistanceRepository extends CrudRepository<Distance, Double>{
     List<Distance> findBySourceAndDestination(String source, String destination);
-
+    Distance getDistanceById(long id);
 }
